@@ -383,6 +383,19 @@ export const asyncRoutes = [
     ]
   },
 
+  {
+    path: '/timing',
+    component: Layout,
+    children: [
+      {
+        path: 'index',
+        component: () => import('@/views/timing/index'),
+        name: 'Timing',
+        meta: { title: 'Timing', icon: 'theme' }
+      }
+    ]
+  },
+
   // 404 page must be placed at the end !!!
   { path: '*', redirect: '/404', hidden: true }
 ]
