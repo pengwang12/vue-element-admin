@@ -170,6 +170,32 @@ export const asyncRoutes = [
       }
     ]
   },
+  {
+    path: '/gwy',
+    component: Layout,
+    redirect: '/gwy/page',
+    alwaysShow: true, // will always show the root menu
+    name: 'gwy',
+    meta: {
+      title: 'gwy',
+      icon: 'lock',
+      roles: ['admin', 'editor'] // you can set roles in root nav
+    },
+    children: [
+      {
+        path: 'index',
+        component: () => import('@/views/timing/index'),
+        name: 'Timing',
+        meta: { title: '计时器', icon: 'theme' }
+      },
+      {
+        path: 'Examination-type',
+        component: () => import('@/views/examination-type/index'),
+        name: 'Examination-type',
+        meta: { title: '题型', icon: 'list' }
+      }
+    ]
+  },
 
   {
     path: '/icon',
@@ -379,19 +405,6 @@ export const asyncRoutes = [
       {
         path: 'https://github.com/PanJiaChen/vue-element-admin',
         meta: { title: 'External Link', icon: 'link' }
-      }
-    ]
-  },
-
-  {
-    path: '/timing',
-    component: Layout,
-    children: [
-      {
-        path: 'index',
-        component: () => import('@/views/timing/index'),
-        name: 'Timing',
-        meta: { title: 'Timing', icon: 'theme' }
       }
     ]
   },
