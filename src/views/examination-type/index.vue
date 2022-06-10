@@ -116,6 +116,9 @@ export default {
       this.listLoading = true
       getList(this.listQuery).then(res => {
         console.log(res)
+        this.list = res.data.records
+        this.total = res.data.total
+        this.listLoading = false
       })
     },
     handleFilter() {
