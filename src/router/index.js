@@ -193,6 +193,12 @@ export const asyncRoutes = [
         component: () => import('@/views/examination-type/index'),
         name: 'Examination-type',
         meta: { title: '题型', icon: 'list' }
+      },
+      {
+        path: 'score-input',
+        component: () => import('@/views/score-input/index'),
+        name: 'score-input',
+        meta: { title: '成绩录入', icon: 'list' }
       }
     ]
   },

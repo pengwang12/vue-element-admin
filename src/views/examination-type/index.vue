@@ -1,215 +1,253 @@
 <template>
   <div class="app-container">
     <div class="filter-container">
-      <el-input v-model="listQuery.title" placeholder="Title" style="width: 200px;" class="filter-item" @keyup.enter.native="handleFilter" />
-      <el-button v-waves class="filter-item" type="primary" icon="el-icon-search" @click="handleFilter">
+      <!-- <el-input
+        v-model="listQuery.title"
+        placeholder=""
+        style="width: 200px"
+        class="filter-item"
+        @keyup.enter.native="handleFilter"
+      />
+      <el-button
+        v-waves
+        class="filter-item"
+        type="primary"
+        icon="el-icon-search"
+        @click="handleFilter"
+      >
         查询
-      </el-button>
-      <el-button class="filter-item" style="margin-left: 10px;" type="primary" icon="el-icon-edit" @click="handleCreate">
+      </el-button> -->
+      <el-button
+        class="filter-item"
+        style="margin-left: 10px"
+        type="primary"
+        icon="el-icon-edit"
+        @click="handleCreate"
+      >
         新增
       </el-button>
     </div>
 
+    <el-dialog :title="title" :visible.sync="dialogFormVisible" width="20%">
+      <el-form :model="form" label-width="80px">
+        <el-input type="hidden" v-model="form.id"></el-input>
+        <el-form-item label="名称">
+          <el-input v-model="form.typeName" autocomplete="off"></el-input>
+        </el-form-item>
+        <el-form-item label="编码">
+          <el-input v-model="form.typeCode" autocomplete="off"></el-input>
+        </el-form-item>
+        <el-form-item label="排序">
+          <el-input v-model="form.sort" autocomplete="off"></el-input>
+        </el-form-item>
+        <el-form-item label="父级题型">
+          <el-select v-model="form.parentId" placeholder="请选择">
+            <el-option value="0">无</el-option>
+            <el-option
+              v-for="item in parents"
+              :key="item.id"
+              :label="item.typeName"
+              :value="item.id"
+            >
+            </el-option>
+          </el-select>
+        </el-form-item>
+      </el-form>
+      <div slot="footer" class="dialog-footer">
+        <el-button @click="dialogFormVisible = false">取 消</el-button>
+        <el-button v-if="model == 'add'" type="primary" @click="add"
+          >确 定</el-button
+        >
+        <el-button v-if="model == 'edit'" type="primary" @click="edit"
+          >确 定</el-button
+        >
+      </div>
+    </el-dialog>
+
     <el-table
-      :key="tableKey"
       v-loading="listLoading"
-      :data="list"
+      :data="treeData"
+      row-key="id"
       border
-      fit
       highlight-current-row
-      style="width: 100%;"
-      @sort-change="sortChange"
+      style="width: 100%"
+      :tree-props="{ children: 'children', hasChildren: 'hasChildren' }"
     >
-      <el-table-column label="ID" prop="id" sortable="custom" align="center" width="80" :class-name="getSortClass('id')">
-        <template slot-scope="{row}">
+      <el-table-column
+        label="ID"
+        prop="id"
+        sortable="custom"
+        align="center"
+        width="80"
+      >
+        <template slot-scope="{ row }">
           <span>{{ row.id }}</span>
         </template>
       </el-table-column>
-      <el-table-column label="名称" prop="typeName" width="150px" align="center" />
-      <el-table-column label="名称" prop="typeCode" width="150px" align="center" />
+      <el-table-column label="名称" prop="typeName" align="center" />
+      <el-table-column label="编码" prop="typeCode" align="center" />
+      <el-table-column fixed="right" label="操作" width="100">
+        <template slot-scope="scope">
+          <el-button @click="handleEdit(scope.row)" type="text" size="small"
+            >编辑</el-button
+          >
+          <el-button @click="handleDelete(scope.row)" type="text" size="small"
+            >删除</el-button
+          >
+        </template>
+      </el-table-column>
     </el-table>
-
-    <pagination v-show="total>0" :total="total" :page.sync="listQuery.page" :limit.sync="listQuery.limit" @pagination="getList" />
   </div>
 </template>
 
 <script>
-import { getList } from '@/api/examination-type'
-import waves from '@/directive/waves' // waves directive
-import { parseTime } from '@/utils'
-import Pagination from '@/components/Pagination' // secondary package based on el-pagination
+import {
+  getList,
+  getTree,
+  getPage,
+  getInfo,
+  add,
+  edit,
+  del,
+} from "@/api/examination-type";
+import waves from "@/directive/waves"; // waves directive
+import Pagination from "@/components/Pagination"; // secondary package based on el-pagination
 
-// const calendarTypeOptions = [
-//   { key: 'CN', display_name: 'China' },
-//   { key: 'US', display_name: 'USA' },
-//   { key: 'JP', display_name: 'Japan' },
-//   { key: 'EU', display_name: 'Eurozone' }
-// ]
-
-// // arr to obj, such as { CN : "China", US : "USA" }
-// const calendarTypeKeyValue = calendarTypeOptions.reduce((acc, cur) => {
-//   acc[cur.key] = cur.display_name
-//   return acc
-// }, {})
-/* eslint-disable */
 export default {
-  name: 'ComplexTable',
+  name: "ComplexTable",
   components: { Pagination },
   directives: { waves },
-  filters: {
-    // statusFilter(status) {
-    //   const statusMap = {
-    //     published: 'success',
-    //     draft: 'info',
-    //     deleted: 'danger'
-    //   }
-    //   return statusMap[status]
-    // },
-    // typeFilter(type) {
-    //   return calendarTypeKeyValue[type]
-    // }
-  },
   data() {
     return {
-      tableKey: 0,
+      title: "",
+      model: "add",
       list: null,
+      treeData: [],
       total: 0,
       listLoading: true,
+      parents: [],
       listQuery: {
         pageIndex: 1,
-        pageSize: 10
+        pageSize: 10,
       },
-      importanceOptions: [1, 2, 3],
-      sortOptions: [{ label: 'ID Ascending', key: '+id' }, { label: 'ID Descending', key: '-id' }],
-      statusOptions: ['published', 'draft', 'deleted'],
-      showReviewer: false,
-      temp: {
-        id: undefined,
-        importance: 1,
-        remark: '',
-        timestamp: new Date(),
-        title: '',
-        type: '',
-        status: 'published'
+      form: {
+        id: "",
+        typeName: "",
+        typeCode: "",
+        parentId: "",
       },
       dialogFormVisible: false,
-      dialogStatus: '',
-      textMap: {
-        update: 'Edit',
-        create: 'Create'
-      },
       dialogPvVisible: false,
       pvData: [],
       rules: {
-        type: [{ required: true, message: 'type is required', trigger: 'change' }],
-        timestamp: [{ type: 'date', required: true, message: 'timestamp is required', trigger: 'change' }],
-        title: [{ required: true, message: 'title is required', trigger: 'blur' }]
+        type: [
+          { required: true, message: "type is required", trigger: "change" },
+        ],
+        timestamp: [
+          {
+            type: "date",
+            required: true,
+            message: "timestamp is required",
+            trigger: "change",
+          },
+        ],
+        title: [
+          { required: true, message: "title is required", trigger: "blur" },
+        ],
       },
-      downloadLoading: false
-    }
+      downloadLoading: false,
+    };
   },
   created() {
-    this.getList()
+    this.getTree();
   },
   methods: {
-    getList() {
-      this.listLoading = true
-      getList(this.listQuery).then(res => {
-        console.log(res)
-        this.list = res.data.records
-        this.total = res.data.total
-        this.listLoading = false
-      })
+    getTree() {
+      this.listLoading = true;
+      getTree().then((res) => {
+        if (res.code === 0) {
+          this.treeData = res.data;
+          this.listLoading = false;
+        }
+      });
+    },
+    getOptions() {
+      getList().then((res) => {
+        this.parents = res.data;
+      });
     },
     handleFilter() {
-      this.listQuery.pageIndex = 1
-      this.getList()
+      this.getTree();
     },
-    handleModifyStatus(row, status) {
-      this.$message({
-        message: '操作Success',
-        type: 'success'
-      })
-      row.status = status
-    },
-    sortChange(data) {
-      const { prop, order } = data
-      if (prop === 'id') {
-        this.sortByID(order)
-      }
-    },
-    sortByID(order) {
-      if (order === 'ascending') {
-        this.listQuery.sort = '+id'
-      } else {
-        this.listQuery.sort = '-id'
-      }
-      this.handleFilter()
-    },
-    resetTemp() {
-      this.temp = {
-        id: undefined,
-        importance: 1,
-        remark: '',
-        timestamp: new Date(),
-        title: '',
-        status: 'published',
-        type: ''
-      }
-    },
+    //新增按钮点击事件
     handleCreate() {
-      this.resetTemp()
-      this.dialogStatus = 'create'
-      this.dialogFormVisible = true
-      this.$nextTick(() => {
-        this.$refs['dataForm'].clearValidate()
-      })
+      this.model = "add";
+      this.title = "添加题型";
+      this.form = {};
+      this.dialogFormVisible = true;
+      this.parents = [];
+      this.getOptions();
     },
-    handleUpdate(row) {
-      this.temp = Object.assign({}, row) // copy obj
-      this.temp.timestamp = new Date(this.temp.timestamp)
-      this.dialogStatus = 'update'
-      this.dialogFormVisible = true
-      this.$nextTick(() => {
-        this.$refs['dataForm'].clearValidate()
-      })
+    //编辑按钮点击事件
+    handleEdit(row) {
+      getInfo(row.id).then((res) => {
+        this.model = "edit";
+        this.title = "修改题型";
+        this.form = {};
+        this.getOptions();
+        this.dialogFormVisible = true;
+
+        this.form = res.data;
+      });
     },
+    //删除按钮点击事件
     handleDelete(row, index) {
-      this.$notify({
-        title: 'Success',
-        message: 'Delete Successfully',
-        type: 'success',
-        duration: 2000
+      this.$confirm("此操作将永久删除，是否继续", "提示", {
+        confirmButtonText: "确定",
+        cancelButtonText: "取消",
+        type: "warning",
       })
-      this.list.splice(index, 1)
-    },
-    handleDownload() {
-      this.downloadLoading = true
-      import('@/vendor/Export2Excel').then(excel => {
-        const tHeader = ['timestamp', 'title', 'type', 'importance', 'status']
-        const filterVal = ['timestamp', 'title', 'type', 'importance', 'status']
-        const data = this.formatJson(filterVal)
-        excel.export_json_to_excel({
-          header: tHeader,
-          data,
-          filename: 'table-list'
+        .then(() => {
+          this.del(row.id);
         })
-        this.downloadLoading = false
-      })
+        .catch(() => {
+          this.$message({
+            type: "info",
+            message: "已取消删除",
+          });
+        });
     },
-    formatJson(filterVal) {
-      return this.list.map(v => filterVal.map(j => {
-        if (j === 'timestamp') {
-          return parseTime(v[j])
+    add() {
+      add(this.form).then((res) => {
+        if (0 === res.code) {
+          this.dialogFormVisible = false;
+          this.getTree();
         } else {
-          return v[j]
         }
-      }))
+      });
     },
-    getSortClass: function(key) {
-      const sort = this.listQuery.sort
-      return sort === `+${key}` ? 'ascending' : 'descending'
-    }
-  }
-}
+    edit() {
+      edit(this.form).then((res) => {
+        if (0 === res.code) {
+          this.dialogFormVisible = false;
+          this.getTree();
+        } else {
+        }
+      });
+    },
+
+    del(id) {
+      del(id).then((res) => {
+        if (res.code === 0) {
+          if ((res.data = true)) {
+            this.$message.success("删除成功");
+            this.getTree();
+            return;
+          }
+        }
+        this.$message.success("删除失败");
+      });
+    },
+  },
+};
 </script>
