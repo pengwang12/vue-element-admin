@@ -73,16 +73,7 @@
       style="width: 100%"
       :tree-props="{ children: 'children', hasChildren: 'hasChildren' }"
     >
-      <el-table-column
-        label="ID"
-        prop="id"
-        sortable="custom"
-        align="center"
-        width="80"
-      >
-        <template slot-scope="{ row }">
-          <span>{{ row.id }}</span>
-        </template>
+      <el-table-column label="序号" type="index" align="center" width="80">
       </el-table-column>
       <el-table-column label="名称" prop="typeName" align="center" />
       <el-table-column label="编码" prop="typeCode" align="center" />

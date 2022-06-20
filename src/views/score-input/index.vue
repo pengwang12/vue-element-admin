@@ -30,6 +30,7 @@
 
     <el-dialog title="成绩录入" :visible.sync="dialogFormVisible" width="20%">
       <el-form :model="form" ref="dataForm" label-width="80px">
+        <el-input type="hidden" v-model="form.id"></el-input>
         <el-form-item label="题型">
           <el-select v-model="form.examinationType" placeholder="请选择">
             <el-option value="0">无</el-option>
@@ -59,7 +60,12 @@
       </el-form>
       <div slot="footer" class="dialog-footer">
         <el-button @click="dialogFormVisible = false">取 消</el-button>
-        <el-button type="primary" @click="add">确 定</el-button>
+        <el-button v-if="(model = 'add')" type="primary" @click="add"
+          >确 定</el-button
+        >
+        <el-button v-if="(model = 'edit')" type="primary" @click="edit"
+          >确 定</el-button
+        >
       </div>
     </el-dialog>
 
@@ -89,6 +95,16 @@
       <el-table-column label="错误数量" prop="wrong" align="center" />
       <el-table-column label="正确率" prop="correctRate" align="center" />
       <el-table-column label="日期" prop="inputDate" align="center" />
+      <el-table-column fixed="right" label="操作" width="100">
+        <template slot-scope="scope">
+          <el-button @click="handleEdit(scope.row)" type="text" size="small"
+            >编辑</el-button
+          >
+          <el-button @click="handleDelete(scope.row)" type="text" size="small"
+            >删除</el-button
+          >
+        </template>
+      </el-table-column>
     </el-table>
 
     <pagination
@@ -102,7 +118,7 @@
 </template>
 
 <script>
-import { getPage, add } from "@/api/score-input";
+import { getPage, add, edit, getInfo, del } from "@/api/score-input";
 import { getList } from "@/api/examination-type";
 import waves from "@/directive/waves"; // waves directive
 import Pagination from "@/components/Pagination"; // secondary package based on el-pagination
@@ -113,6 +129,7 @@ export default {
   directives: { waves },
   data() {
     return {
+      model: "add",
       list: null,
       total: 0,
       listLoading: true,
@@ -161,6 +178,11 @@ export default {
         this.listLoading = false;
       });
     },
+    getInfo(id) {
+      getInfo(id).then((res) => {
+        this.form = res.data;
+      });
+    },
     /** 题型下拉框数据 */
     getExaminationTypes() {
       getList().then((res) => {
@@ -181,9 +203,10 @@ export default {
       });
     },
     /** 编辑按钮点击事件 */
-    handleUpdate(row) {
-      this.temp = Object.assign({}, row); // copy obj
-      this.temp.timestamp = new Date(this.temp.timestamp);
+    handleEdit(row) {
+      this.model = "edit";
+      this.form = {};
+      this.getInfo(row.id);
       this.dialogFormVisible = true;
       this.$nextTick(() => {
         this.$refs["dataForm"].clearValidate();
@@ -208,6 +231,17 @@ export default {
           this.getList();
         } else {
           this.$message.error("录入失败");
+        }
+      });
+    },
+    edit() {
+      edit(this.form).then((res) => {
+        if (res.code === 0) {
+          this.dialogFormVisible = false;
+          this.$message.success("编辑成功");
+          this.getList();
+        } else {
+          this.$message.error("编辑失败");
         }
       });
     },
